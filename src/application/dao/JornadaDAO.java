@@ -9,65 +9,102 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-import application.model.HoraExtras;
+import application.model.Jornada;
 
 public class JornadaDAO {
+	
+	public List<Jornada> listarPorPeriodo(LocalDateTime dataInicio, LocalDateTime dataFim) {
+	    List<Jornada> jornadas = new ArrayList<>();
+	    String sql = "SELECT * FROM JornadasTrabalhoCopia WHERE startJornada BETWEEN ? AND ? ORDER BY startJornada ASC";
+	    
+	    try (Connection conn = ConnectionDB.create();
+	         PreparedStatement pstm = conn.prepareStatement(sql)) {
 
-    public static List<HoraExtras> getAllHoraExtras() {
-        List<HoraExtras> horaExtrasList = new ArrayList<>();
-        Connection connection = null;
-        PreparedStatement statement = null;
-        ResultSet resultSet = null;
+	        // Define os parâmetros da consulta
+	        pstm.setTimestamp(1, Timestamp.valueOf(dataInicio));
+	        pstm.setTimestamp(2, Timestamp.valueOf(dataFim));
 
-        try {
-            // Cria a conexão
-            connection = ConnectionDB.create();
-            
-            
+	        ResultSet rs = pstm.executeQuery();
 
-            // Define a consulta SQL
-            String sql = "SELECT startJornada, endJornada, startAlmoco, endAlmoco FROM JornadasTrabalho";
+	        while (rs.next()) {
+	            Jornada jornada = new Jornada();
 
-            // Prepara a declaração SQL
-            statement = connection.prepareStatement(sql);
+	            // Verifica se o valor não é nulo antes de chamar toLocalDateTime()
+	            Timestamp startJornadaTimestamp = rs.getTimestamp("startJornada");
+	            if (startJornadaTimestamp != null) {
+	                jornada.setStartJornada(startJornadaTimestamp.toLocalDateTime());
+	            }
 
-            // Executa a consulta
-            resultSet = statement.executeQuery();
+	            Timestamp endJornadaTimestamp = rs.getTimestamp("endJornada");
+	            if (endJornadaTimestamp != null) {
+	                jornada.setEndJornada(endJornadaTimestamp.toLocalDateTime());
+	            }
 
-            // Processa os resultados
-            while (resultSet.next()) {
-                // Obtém os campos da tabela
-                Timestamp startJornadaTimestamp = resultSet.getTimestamp("startJornada");
-                Timestamp endJornadaTimestamp = resultSet.getTimestamp("endJornada");
-                Timestamp startAlmocoTimestamp = resultSet.getTimestamp("startAlmoco");
-                Timestamp endAlmocoTimestamp = resultSet.getTimestamp("endAlmoco");
+	            Timestamp startAlmocoTimestamp = rs.getTimestamp("startAlmoco");
+	            if (startAlmocoTimestamp != null) {
+	                jornada.setStartRefeicao(startAlmocoTimestamp.toLocalDateTime());
+	            }
 
-                // Converte os Timestamps para LocalDateTime
-                LocalDateTime startJornada = startJornadaTimestamp.toLocalDateTime();
-                LocalDateTime endJornada = endJornadaTimestamp.toLocalDateTime();
-                LocalDateTime startRefeicao = startAlmocoTimestamp.toLocalDateTime();
-                LocalDateTime endRefeicao = endAlmocoTimestamp.toLocalDateTime();
+	            Timestamp endAlmocoTimestamp = rs.getTimestamp("endAlmoco");
+	            if (endAlmocoTimestamp != null) {
+	                jornada.setEndRefeicao(endAlmocoTimestamp.toLocalDateTime());
+	            }
 
-                // Cria um objeto HoraExtras e adiciona à lista
-                HoraExtras horaExtras = new HoraExtras(startJornada, endJornada, startRefeicao, endRefeicao);
-                horaExtrasList.add(horaExtras);
+	            jornada.setPorcentagem(rs.getInt("porcentagem"));
+
+	            jornadas.add(jornada);
+	        }
+	    } catch (SQLException e) {
+	        e.printStackTrace();
+	    }
+
+	    return jornadas;
+	}
+	
+	
+    public List<Jornada> listarTodas() {
+        List<Jornada> jornadas = new ArrayList<>();
+        String sql = "SELECT * FROM JornadasTrabalho order by startJornada asc";
+        
+        try (Connection conn = ConnectionDB.create();
+             PreparedStatement pstm = conn.prepareStatement(sql);
+             ResultSet rs = pstm.executeQuery()) {
+
+            while (rs.next()) {
+                Jornada jornada = new Jornada();
+
+                // Verifica se o valor não é nulo antes de chamar toLocalDateTime()
+                Timestamp startJornadaTimestamp = rs.getTimestamp("startJornada");
+                if (startJornadaTimestamp != null) {
+                    jornada.setStartJornada(startJornadaTimestamp.toLocalDateTime());
+                }
+
+                Timestamp endJornadaTimestamp = rs.getTimestamp("endJornada");
+                if (endJornadaTimestamp != null) {
+                    jornada.setEndJornada(endJornadaTimestamp.toLocalDateTime());
+                }
+
+                Timestamp startAlmocoTimestamp = rs.getTimestamp("startAlmoco");
+                if (startAlmocoTimestamp != null) {
+                    jornada.setStartRefeicao(startAlmocoTimestamp.toLocalDateTime());
+                }
+
+                Timestamp endAlmocoTimestamp = rs.getTimestamp("endAlmoco");
+                if (endAlmocoTimestamp != null) {
+                    jornada.setEndRefeicao(endAlmocoTimestamp.toLocalDateTime());
+                }
+
+                jornada.setPorcentagem(rs.getInt("porcentagem"));
+
+                jornadas.add(jornada);
             }
-
         } catch (SQLException e) {
             e.printStackTrace();
-        } finally {
-            // Fecha os recursos
-            try {
-                if (resultSet != null) resultSet.close();
-                if (statement != null) statement.close();
-                if (connection != null) connection.close();
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
         }
 
-        return horaExtrasList;
+        return jornadas;
     }
 
-    // Adicione outros métodos conforme necessário
+
+
 }
